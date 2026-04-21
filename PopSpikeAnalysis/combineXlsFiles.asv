@@ -1,0 +1,17 @@
+function combineXlsFiles(dataDir)
+end %%TODO: remove
+%UNTITLED4 Summary of this function goes here
+%   Detailed explanation goes here
+%% Grab all XLS files
+
+%TODO: remove
+dataDir = "/Volumes/rapearce/Kai/Ai32_Series/CD/20260218/XLS_files";
+
+%Extract the names of the XLS files in the folder
+xlsDirListing = dir(dataDir);
+xlsDirTbl = struct2table(xlsDirListing);
+%namedFiles = xlsDirTbl(~matches(xlsDirTbl.name, [".", ".."]),:);
+namedFiles = ~xlsDirTbl.isdir;
+
+
+%%

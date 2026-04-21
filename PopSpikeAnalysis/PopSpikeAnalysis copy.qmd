@@ -1,0 +1,128 @@
+---
+title: "PopSpikeAnalysis"
+author: "Kai bartol"
+format: html
+editor: source
+---
+
+# Initialize libraries
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(stringr)
+library(ggplot2)
+```
+
+# Main
+
+## Data cleanup
+
+```{r}
+#global df
+dfCombined = tibble()
+#Dir must contain a folder named "XLS_files" and another folder named "Results"
+#dir <- selectDirectory()
+directory <- "/Volumes/rapearce/Kai/Ai32_Series/CD/20260218" #TODO: Delete
+
+##Chaange the following variables to suit your experiment
+genotype <- "Ai32xL5cre"
+date = "20260218"
+conditions = c("saline", "3uM KSEB", "10uM KSEB", "30uM KSEB")
+#first and last trial for each condition
+trials = c(
+  2, 3, #saline
+  7, 8, #3uM KSEB
+  9, 11, #10uM KSEB
+  15, 18 #30uM KSEB
+)
+
+isiValues = c(10, 20, 40, 80, 160, 320, 640, 1280)
+
+excelPath <- paste(directory, "XLS_files", sep = "/")
+#TODO: ensure excelFiles always lists files in ascending order or else
+#it might be messing with my ISI values
+excelFiles <- list.files(excelPath, full.names = TRUE, pattern='*.XLS')
+
+for (i in 1:length(excelFiles)){
+  xl = read_excel(excelFiles[i])
+  xl$ISI = rep(isiValues[i], nrow(xl))
+  xl$Flash = rep(c(0, 1), nrow(xl)/2) #requires all odd rows to be no flash, all even rows to be flash
+  dfCombined <- rbind(dfCombined, xl)
+}
+
+#keep only the rows that were part of an active trial
+#and label condition
+expandedTrials = numeric(0)
+expandedConditions = character(0)
+for(i in 1:length(conditions)){
+  starEndTrials <- c(trials[i*2-1], trials[i*2]) #grab start and end trials for condition
+  expandedTrials <-  as.character(c(expandedTrials, starEndTrials[1]:starEndTrials[2])) #extract all values between start and end
+  expandedConditions <- c(expandedConditions, c((rep(conditions[i], length(starEndTrials[1]:starEndTrials[2])))))
+}
+dfTrialLabel = data.frame(
+  trial = expandedTrials,
+  condition = expandedConditions
+)
+
+#cute little bit of code to select the rows I want
+# TODO: don't think this works with more than 99 trials
+df_filtered <- dfCombined %>%
+  mutate(trial = str_extract(Filename, "[1-9]+(?=_)")) %>% # add new column and get numbers before 0 on filename before _
+  mutate(trial = replace_na(trial, '0')) %>% # add back 0's
+  filter(trial %in% expandedTrials) %>% #select for the columns we want
+  left_join(dfTrialLabel, by = "trial") %>% #add our trial labeles to column (more useful than trial number)
+  select(-trial)  # remove the new trial column 
+```
+
+## Data visualizaiton
+
+```{r}
+summary_df = data.frame(
+  ISI = numeric(0),
+  mean_ratio = numeric(0),
+  sd_ratio = numeric(0),
+  n = numeric(0),
+  condition = character(0)
+)
+for(i in conditions) {
+  df_condition <- df_filtered %>% filter(condition == i)
+  
+
+df_ratio <- df_condition %>%
+  group_by(ISI) %>%         
+  mutate(
+    PS_ratio = if_else(
+      Flash == 1,
+      PSamp / lag(PSamp),     # Flash 0 / Flash 1
+      NA_real_
+    )
+  )
+
+summary_df <- rbind(summary_df, 
+                    df_ratio %>%
+  filter(!is.na(PS_ratio)) %>%
+  group_by(ISI) %>%
+  summarise(
+    mean_ratio = mean(PS_ratio),
+    sd_ratio = sd(PS_ratio),
+    n = n(),
+    condition = i,
+    .groups = "drop"
+  )
+)
+}
+
+ggplot(summary_df, aes(x = ISI, y = mean_ratio, group = condition, colour = condition)) +
+  geom_line() +
+  geom_point(size = 2) +
+  labs(
+    x = "ISI",
+    y = "PSarea Ratio (Flash / noflash)"
+  ) +
+  scale_x_log10() +
+  annotation_logticks() +
+  theme_classic()
+```
+
+

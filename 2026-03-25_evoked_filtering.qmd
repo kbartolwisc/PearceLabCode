@@ -1,0 +1,27 @@
+---
+title: "Untitled"
+format: html
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+pathname = '/Volumes/rapearce/Kai/Ai32_Series/TraceAnalysis/20260314/fitted_traces.xlsx'
+df <- read_excel(pathname)
+```
+
+```{r}
+df_filtered = df %>% filter(df$tau1>0 & df$tau1 < 500 & df$A1 < 0 & df$`Correlation Coefficient` > 0.7 )
+
+
+
+hist(df_filtered$tau1)
+boxplot(df_filtered$tau1)
+summary(df_filtered$tau1)
+```
+
+```{r}
+ggplot(df_filtered, aes(x=tau, y=Ra)) + geom_point() + geom_smooth(method=lm)
+```
+
+

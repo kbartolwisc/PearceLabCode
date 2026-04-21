@@ -1,0 +1,47 @@
+---
+title: "abf_figure_creator"
+format: html
+editor: source
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+library(fitdistrplus)
+library(conflicted)
+library(paletteer)
+conflict_prefer("filter", "dplyr")
+```
+
+```{r}
+filepath <- "/Volumes/rapearce/Kai/Ai32_Series/Analysis/Traces/20251126_Evoked_traces_saline.csv"
+#microseconds per poin
+
+
+raw_file <- read_csv(filepath)
+#length of time in ms
+numpoints <- nrow(raw_file)
+mstime <- fileres * numpoints / 1000 
+
+t <- seq(from=0 + (mstime/numpoints), to=mstime, by=(mstime/numpoints))
+df_file <- raw_file %>%
+  #default units are pA
+  rename('pA'='0') %>%
+  mutate(
+    ms = t
+  )
+```
+
+```{r}
+pivot <- raw_file %>% pivot_longer(!time_ms, names_to = "trace", values_to = "pA")
+```
+
+
+```{r}
+
+ggplot(pivot, aes(x=time_ms, y=pA, group = trace)) + geom_line()
+```
+
+
+

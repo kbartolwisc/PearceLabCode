@@ -1,0 +1,111 @@
+---
+title: "PopSpikeAnalysis"
+author: "Kai bartol"
+format: html
+editor: visual
+---
+
+#Helper functions
+
+initalize libraries
+
+```{r}
+library(tidyverse)
+library(readxl)
+
+dfExport = data.frame(
+  ISI = numeric(0),
+  Flash = numeric(0),
+  Filename = numeric(0),
+  PSAmp = numeric(0)
+)
+```
+
+```{r extractCondition}
+extractCondition <- function(starEndTrials){
+  
+excelPath <- paste(directory, "XLS_Files", sep = "/")
+#TODO: ensure excelFiles always lists files in ascending order or else
+#it might be messing with my ISI values
+excelFiles <- list.files(excelPath, full.names = TRUE, pattern='*.XLS') 
+trials = starEndTrials[1]:starEndTrials[2] #extract all values between start and end
+
+dfExtract <- tibble()
+for(i in excelFiles){
+  xl = read_excel(i)
+  for(j in trials) {
+    filenameExtension <- paste(j, "_", sep="")
+    dfTrialRows <- xl[grepl(filenameExtension, xl$Filename),]
+    dfExtract <- rbind(dfExtract, dfTrialRows)
+  }
+}
+return(dfExtract)
+}
+```
+
+```{r extractData}
+extractData <- function(xl, isiList){
+  dfReturn <- data.frame(
+    ISI = numeric(0),
+    Flash = numeric(0),
+    Filename = numeric(0),
+    PSAmp = numeric(0)
+)
+  
+for(i in 1:length(isiList)){
+  ISI <- isiList[i]
+  
+  #rows that will be noflash (always before flash)
+  Flash = 0
+  noFlashBase <- i*2-1
+  noFlashRows <- noFlashBase 
+  
+  
+  
+  flash <- i #rows that will contain flash
+  
+
+  k <- k+1
+}
+
+}
+```
+
+```{r WinLTPCleanup}
+#Funciton takes directory, names of conditions and trials they are used in
+# creates a .xlsx file in 'Results' folder containing PS amplitude information
+#winLTPCleanup <- function(dir, conditions, trials){
+for(i in 1:length(conditions)){
+  starEndTrials <- c(trials[i*2-1], trials[i*2]) #grab start and end trials for condition
+  xl = extractCondition(starEndTrials)
+  xlTransfer = extractData(xl, isiValues)
+}
+
+#}
+```
+
+# Main
+
+```{r}
+#Dir must contain a folder named "XLS_files" and another folder named "Results"
+#dir <- selectDirectory()
+directory <- "/Volumes/rapearce/Kai/Ai32_Series/CD/20260218" #TODO: Delete
+
+##Chaange the following variables to suit your experiment
+genotype <- "Ai32xL5cre"
+date = "20260218"
+conditions = c("saline", "3uM KSEB", "10uM KSEB", "30uM KSEB")
+#first and last trial for each condition
+trials = c(
+  2, 3, #saline
+  7, 8, #3uM KSEB
+  9, 11, #10uM KSEB
+  15, 18 #30uM KSEB
+)
+
+isiValues = c(10, 20, 40, 80, 160, 320, 640, 1280)
+
+winLTPCleanup(directory, conditions, trials)
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
